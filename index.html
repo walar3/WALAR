@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام التعليقات مع التعديل</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f1f5f9;
+            color: #333;
+        }
+        .comment-box {
+            margin-bottom: 20px;
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        textarea, input[type="text"], input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f8fafc;
+            color: #333;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #1d4ed8;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #2563eb;
+        }
+        .comments {
+            margin-top: 20px;
+        }
+        .comment {
+            padding: 10px;
+            background: #ffffff;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .comment img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            margin-right: 10px;
+            border: 2px solid #2563eb;
+        }
+        .comment-content {
+            flex-grow: 1;
+        }
+        .comment-content strong {
+            color: #1d4ed8;
+            font-size: 16px;
+        }
+        .comment-content p {
+            margin: 5px 0;
+            color: #4b5563;
+        }
+        .edit-btn, .delete-btn {
+            background-color: #1e40af;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 5px 10px;
+            margin-left: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .edit-btn:hover {
+            background-color: #2563eb;
+        }
+        .delete-btn {
+            background-color: #ef4444;
+        }
+        .delete-btn:hover {
+            background-color: #dc2626;
+        }
+    </style>
+</head>
+<body>
+    <div class="comment-box">
+        <input type="text" id="nameInput" placeholder="أدخل اسمك">
+        <input type="file" id="imageInput" accept="image/*">
+        <textarea id="commentInput" rows="4" placeholder="أدخل تعليقك هنا"></textarea><br>
+        <button id="addComment">إضافة تعليق</button>
+    </div>
+    <div class="comments" id="commentsList"></div>
+
+    <script>
+        // عناصر DOM
+        const nameInput = document.getElementById('nameInput');
+        const imageInput = document.getElementById('imageInput');
+        const commentInput = document.getElementById('commentInput');
+        const addCommentButton = document.getElementById('addComment');
+        const commentsList = document.getElementById('commentsList');
+
+        // متغير يحتوي على اسم المستخدم الحالي
+        let currentUser = "User1";  // يمكنك استبداله ديناميكيا بناءً على تسجيل الدخول
+
+        const loadComments = () => {
+            const comments = JSON.parse(localStorage.getItem('comments')) || [];
+            commentsList.innerHTML = '';
+            comments.forEach((commentData, index) => {
+                const commentDiv = document.createElement('div');
+                commentDiv.className = 'comment';
+
+                // صورة المستخدم
+                const userImage = document.createElement('img');
+                userImage.src = commentData.image || 'https://via.placeholder.com/50';
+                userImage.alt = 'User Image';
+
+                // نص التعليق
+                const commentContent = document.createElement('div');
+                commentContent.className = 'comment-content';
+                commentContent.innerHTML = `<strong>${commentData.name}</strong><p>${commentData.comment}</p>`;
+
+                // زر التعديل يظهر فقط إذا كان المستخدم هو نفس الشخص الذي كتب التعليق
+                const editButton = document.createElement('button');
+                editButton.textContent = 'تعديل';
+                editButton.className = 'edit-btn';
+                if (commentData.name === currentUser) {
+                    editButton.style.display = 'inline-block';
+                    editButton.onclick = () => editComment(index);
+                } else {
+                    editButton.style.display = 'none';
+                }
+
+                // زر الحذف يظهر فقط إذا كان المستخدم هو نفس الشخص الذي كتب التعليق
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'حذف';
+                deleteButton.className = 'delete-btn';
+                if (commentData.name === currentUser) {
+                    deleteButton.style.display = 'inline-block';
+                    deleteButton.onclick = () => deleteComment(index);
+                } else {
+                    deleteButton.style.display = 'none';
+                }
+
+                // تجميع العناصر
+                commentDiv.appendChild(userImage);
+                commentDiv.appendChild(commentContent);
+                commentDiv.appendChild(editButton);
+                commentDiv.appendChild(deleteButton);
+                commentsList.appendChild(commentDiv);
+            });
+        };
+
+        // إضافة تعليق جديد
+        const addComment = () => {
+            const name = nameInput.value.trim();
+            const comment = commentInput.value.trim();
+            const imageFile = imageInput.files[0];
+
+            if (!name || !comment) {
+                alert('يرجى إدخال الاسم والتعليق!');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = () => {
+                const imageUrl = reader.result;
+                const comments = JSON.parse(localStorage.getItem('comments')) || [];
+                comments.push({ name, comment, image: imageUrl });
+                localStorage.setItem('comments', JSON.stringify(comments));
+                nameInput.value = '';
+                commentInput.value = '';
+                imageInput.value = '';
+                loadComments();
+            };
+
+            if (imageFile) {
+                reader.readAsDataURL(imageFile);
+            } else {
+                const comments = JSON.parse(localStorage.getItem('comments')) || [];
+                comments.push({ name, comment, image: '' });
+                localStorage.setItem('comments', JSON.stringify(comments));
+                nameInput.value = '';
+                commentInput.value = '';
+                loadComments();
+            }
+        };
+
+        // تعديل تعليق
+        const editComment = (index) => {
+            const comments = JSON.parse(localStorage.getItem('comments')) || [];
+            const commentData = comments[index];
+
+            // تعبئة بيانات التعليق في الحقول
+            nameInput.value = commentData.name;
+            commentInput.value = commentData.comment;
+            imageInput.value = commentData.image ? commentData.image : '';
+
+            // تغيير وظيفة الزر إلى تعديل
+            addCommentButton.textContent = 'تعديل تعليق';
+            addCommentButton.onclick = () => {
+                commentData.comment = commentInput.value;
+                commentData.name = nameInput.value;
+                commentData.image = imageInput.files[0] ? URL.createObjectURL(imageInput.files[0]) : commentData.image;
+
+                comments[index] = commentData;
+                localStorage.setItem('comments', JSON.stringify(comments));
+                loadComments();
+
+                nameInput.value = '';
+                commentInput.value = '';
+                imageInput.value = '';
+                addCommentButton.textContent = 'إضافة تعليق';
+                addCommentButton.onclick = addComment;
+            };
+        };
+
+        // حذف تعليق
+        const deleteComment = (index) => {
+            const comments = JSON.parse(localStorage.getItem('comments')) || [];
+            comments.splice(index, 1);
+            localStorage.setItem('comments', JSON.stringify(comments));
+            loadComments();
+        };
+
+        addCommentButton.addEventListener('click', addComment);
+        document.addEventListener('DOMContentLoaded', loadComments);
+    </script>
+</body>
+</html>
